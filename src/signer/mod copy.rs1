@@ -1,0 +1,105 @@
+use coinstr_core::nostr_sdk::{secp256k1, secp256k1::XOnlyPublicKey};
+use coinstr_core::nostr_sdk::{Event, UnsignedEvent};
+use async_trait::async_trait;
+use serde::{Serialize, Deserialize};
+use std::fmt;
+use std::str::FromStr;
+
+
+use wasm_bindgen::prelude::*;
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    /// Canceled By User
+    #[error("Operation canceled by user")]
+    CanceledByUser,
+    #[error("get public key error: {0}")]
+    GetPublicKey(String),
+    #[error("encryption error: {0}")]
+    Encrypt(String),
+    #[error("decryption error: {0}")]
+    Decrypt(String),
+    #[error("sign event error: {0}")]
+    SignEvent(String),
+    #[error(transparent)]
+    Secp256k1(#[from] secp256k1::Error),
+    
+}
+
+#[async_trait]
+trait Signer {
+  async fn public_key() -> Result<XOnlyPublicKey, Error>;
+  async fn encrypt(public_key: XOnlyPublicKey, plaintext: &str) -> Result<String, Error>;
+  async fn decrypt(public_key: XOnlyPublicKey, ciphertext: &str) -> Result<String, Error>;
+  async fn sign_event(event: UnsignedEvent) -> Result<Event, Error>;
+  
+}
+
+#[wasm_bindgen(module = "/wasm-js-api.js")]
+extern "C" {
+
+  #[wasm_bindgen(catch)]
+  async fn get_public_key() -> Result<JsValue, JsValue>;
+
+  #[wasm_bindgen(catch)]
+  async fn encrypt(pubkey: &str, plaintext: &str) -> Result<JsValue, JsValue>;
+
+  #[wasm_bindgen(catch)]
+  async fn decrypt(pubkey: &str, plaintext: &str) -> Result<JsValue, JsValue>;
+
+  #[wasm_bindgen(catch)]
+  async fn sign_event(event: JsValue) -> Result<JsValue, JsValue>;
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct JavascriptError{
+  pub message: String
+}
+
+impl From<JsValue> for JavascriptError{
+  fn from(val: JsValue) -> Self {
+    if let Ok(err) = serde_wasm_bindgen::from_value(val){
+      err
+    } else {
+      JavascriptError{
+        message: "failed converting error to JavascriptError".to_string(),
+      }
+    }
+  }
+}
+
+impl fmt::Display for JavascriptError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+
+pub struct WebExtensionSigner;
+
+#[async_trait]
+impl Signer for WebExtensionSigner {
+    async fn public_key() -> Result<XOnlyPublicKey, Error> {
+      match get_public_key().await{
+        Ok(key) => {
+          Ok(XOnlyPublicKey::from_str(&key.as_string().unwrap())?)
+        },
+        Err(err) =>{
+          let err: JavascriptError = err.into();
+          Err(Error::GetPublicKey(err.to_string()))
+        }
+      }
+    }
+
+    async fn encrypt(public_key: XOnlyPublicKey, plaintext: &str) -> Result<String, Error> {
+        todo!()
+    }
+
+    async fn decrypt(public_key: XOnlyPublicKey, ciphertext: &str) -> Result<String, Error> {
+        todo!()
+    }
+
+    async fn sign_event(event: UnsignedEvent) -> Result<Event, Error> {
+        todo!()
+    }
+}

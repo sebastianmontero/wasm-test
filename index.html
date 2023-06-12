@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
+  <script type="module">
+    import init, {add, concatenate, promise, policies, contacts, save_policy, sign_event_test, encrypt_decrypt_test } from './pkg/wasm_test.js'
+    import {asyncfn2, enable, is_nostr_available, get_public_key, encrypt, decrypt, sign_event} from './wasm-js-api.js'
+    
+    window.onload = async function(){
+      // try {
+      //   await window.nostr.enable()
+      //   const pe = enable()
+      //   console.log("promise enable: ", pe)
+      //   await pe
+      //   const p = get_public_key()
+      //   console.log("promise: ", p)
+      //   const public_key = await p
+      // } catch(e) {
+      //   console.log("error: ", e)
+      // }
+      // console.log("get public key", public_key)
+      // const sk = window.NostrTools.generatePrivateKey() // `sk` is a hex string
+      // // const pkto = window.NostrTools.getPublicKey(sk) //
+      // const pkto = "b914ad96f1d9aa77ce7547138c23d6578e7314bf898c37c8cecdb24920e0dda0"
+      // try {
+      //   const pk = await get_public_key()
+      //   console.log("pk 1: ", pkto)
+      //   console.log("public key: ", pk)
+      // } catch(err){
+      //   console.log("error: ", err.message)
+      //   console.log("error: ", JSON.stringify(err))
+      //   console.log("error type: ", typeof err.message)
+      // }
+      // // const ciphertext = await encrypt(pk, "hola")
+      // // console.log("ciphertext: ", ciphertext)
+      // // console.log("plaintexttext: ", await decrypt(pk, ciphertext))
+      // const event = {
+      //   pubkey: pk,
+      //   kind: 4,
+      //   content: "mensaje",
+      //   tags: [['p', pkto]],
+      //   // created_at: Math.floor(Date.now() / 1000)
+      //   created_at: 1686445104
+      // }
+      // event.id = window.NostrTools.getEventHash(event)
+      // console.log("event hash: ", event.id)
+      // const signedEvent = await sign_event(event)
+      // console.log("signed event: ", signedEvent)
+      // const m = await asyncfn2("xxx")
+      // console.log("async2", m)
+      // console.log("is nostr available", is_nostr_available())
+      // console.log("public key: ", await get_public_key())
+      
+      await init()
+
+      await encrypt_decrypt_test("text to cipher")
+      try {
+        await sign_event_test()
+      } catch(err){
+        console.log(err)
+      }
+      console.log("result of add: ", add(1,2))
+      console.log("result of add: ", concatenate("hola ","amigo"))
+      // const p = promise("val")
+      // console.log("promise: ", p)
+      // console.log("result of promise: ", await p)
+
+      // console.log("Save policy: ", await save_policy("policiy 1", "test policy 1", "or(pk(ea527e059759d368a55253270454e58e9d6e4fe2e98d302d6e01821fa973259d),pk(101e7953a54b18d0f41ea199b9adf2d7e643441b5af8e539531e6d7275cee1df))"))
+      
+
+      const ps = policies()
+      console.log("policies: ", ps)
+      console.log("result of policies: ", await ps)
+      console.log("result of contacts: ", await contacts())
+    }
+
+  </script>
+</body>
+</html>
