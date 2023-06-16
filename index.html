@@ -9,9 +9,10 @@
 <body>
   <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
   <script type="module">
-    import init, {add, concatenate, promise, policies, contacts, save_policy, sign_event_test, encrypt_decrypt_test } from './pkg/wasm_test.js'
+    import init, {add, concatenate, promise, policies, contacts, save_policy, sign_event_test_nostr_connect, encrypt_decrypt_test } from './pkg/wasm_test.js'
     import {asyncfn2, enable, is_nostr_available, get_public_key, encrypt, decrypt, sign_event} from './wasm-js-api.js'
-    
+    import { NostrConnect } from '@smontero/nostr-connect-singleton';
+
     window.onload = async function(){
       // try {
       //   await window.nostr.enable()
@@ -58,13 +59,26 @@
       // console.log("public key: ", await get_public_key())
       
       await init()
-
-      await encrypt_decrypt_test("text to cipher")
-      try {
-        await sign_event_test()
-      } catch(err){
-        console.log(err)
+      const nostrConnect = new NostrConnect()
+      const uri = await nostrConnect.init({
+      relay: 'wss://nostr.vulpem.com',
+      metadata: {
+        name: 'Coinstr',
+        description: 'coinstr app',
+        url: 'https://vulpem.com',
+        icons: ['https://vulpem.com/1000x860-p-500.422be1bc.png']
+      },
+      onConnectFn: async (walletPubkey) => {
+        console.log('connected with wallet: ' + walletPubkey)
       }
+    })
+    console.log('nostr connect uri: ', uri)
+      // await encrypt_decrypt_test("text to cipher")
+      // try {
+      //   await sign_event_test_nostr_connect()
+      // } catch(err){
+      //   console.log(err)
+      // }
       console.log("result of add: ", add(1,2))
       console.log("result of add: ", concatenate("hola ","amigo"))
       // const p = promise("val")

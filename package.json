@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@smontero/nostr-connect-singleton": "file:/home/sebastian/vsc-workspace/nostr-connect-singleton/"
+  }
+}
