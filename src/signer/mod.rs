@@ -50,19 +50,25 @@ extern "C" {
     async fn sign_event(event: JsValue) -> Result<JsValue, JsValue>;
 }
 
-#[wasm_bindgen(module = "@smontero/nostr-connect-singleton")]
+#[wasm_bindgen(module = "@smontero/nostr-ual")]
 extern "C" {
 
-    type NostrConnect;
+    type CurrentSigner;
 
-    #[wasm_bindgen(constructor)]
-    fn new() -> NostrConnect;
+    
+    #[wasm_bindgen(static_method_of = CurrentSigner, catch)]
+    async fn get_public_key() -> Result<JsValue, JsValue>;
 
-    #[wasm_bindgen(method, catch)]
-    async fn getPublicKey(this: &NostrConnect) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(static_method_of = CurrentSigner, catch)]
+    async fn encrypt(pubkey: &str, plaintext: &str) -> Result<JsValue, JsValue>;
 
-    #[wasm_bindgen(method, catch)]
-    async fn signEvent(this: &NostrConnect, event: JsValue) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(static_method_of = CurrentSigner, catch)]
+    async fn decrypt(pubkey: &str, ciphertext: &str) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(static_method_of = CurrentSigner, catch)]
+    async fn sign_event(event: JsValue) -> Result<JsValue, JsValue>;
+    
+    
 
 }
 
@@ -90,12 +96,12 @@ impl fmt::Display for JavascriptError {
     }
 }
 
-pub struct WebExtensionSigner;
+pub struct WebSigner;
 
 #[async_trait(?Send)]
-impl Signer for WebExtensionSigner {
+impl Signer for WebSigner {
     async fn public_key(&self) -> Result<XOnlyPublicKey, Error> {
-        match get_public_key().await {
+        match CurrentSigner::get_public_key().await {
             Ok(key) => Ok(XOnlyPublicKey::from_str(&key.as_string().unwrap())?),
             Err(err) => {
                 let err: JavascriptError = err.into();
@@ -105,7 +111,7 @@ impl Signer for WebExtensionSigner {
     }
 
     async fn encrypt(&self, public_key: &XOnlyPublicKey, plaintext: &str) -> Result<String, Error> {
-        match encrypt(&public_key.to_string(), plaintext).await {
+        match CurrentSigner::encrypt(&public_key.to_string(), plaintext).await {
             Ok(ciphertext) => Ok(ciphertext.as_string().unwrap()),
             Err(err) => {
                 let err: JavascriptError = err.into();
@@ -115,7 +121,7 @@ impl Signer for WebExtensionSigner {
     }
 
     async fn decrypt(&self, public_key: &XOnlyPublicKey, ciphertext: &str) -> Result<String, Error> {
-        match decrypt(&public_key.to_string(), ciphertext).await {
+        match CurrentSigner::decrypt(&public_key.to_string(), ciphertext).await {
             Ok(plaintext) => Ok(plaintext.as_string().unwrap()),
             Err(err) => {
                 let err: JavascriptError = err.into();
@@ -125,52 +131,7 @@ impl Signer for WebExtensionSigner {
     }
 
     async fn sign_event(&self, event: UnsignedEvent) -> Result<Event, Error> {
-        match sign_event(serde_wasm_bindgen::to_value(&event)?).await {
-            Ok(sig) => {
-              let event = event.add_signature(Signature::from_str(&sig.as_string().unwrap())?)?;
-              Ok(event)
-            },
-            Err(err) => {
-                let err: JavascriptError = err.into();
-                Err(Error::SignEvent(err.to_string()))
-            }
-        }
-    }
-}
-
-
-pub struct NostrConnectSigner {
-    nostr_connect: NostrConnect
-}
-
-impl NostrConnectSigner {
-    pub fn new() -> NostrConnectSigner {
-        NostrConnectSigner { nostr_connect: NostrConnect::new() }
-    }
-}
-
-#[async_trait(?Send)]
-impl Signer for NostrConnectSigner {
-    async fn public_key(&self) -> Result<XOnlyPublicKey, Error> {
-        match self.nostr_connect.getPublicKey().await {
-            Ok(key) => Ok(XOnlyPublicKey::from_str(&key.as_string().unwrap())?),
-            Err(err) => {
-                let err: JavascriptError = err.into();
-                Err(Error::GetPublicKey(err.to_string()))
-            }
-        }
-    }
-
-    async fn encrypt(&self, public_key: &XOnlyPublicKey, plaintext: &str) -> Result<String, Error> {
-        todo!()
-    }
-
-    async fn decrypt(&self, public_key: &XOnlyPublicKey, ciphertext: &str) -> Result<String, Error> {
-        todo!()
-    }
-
-    async fn sign_event(&self, event: UnsignedEvent) -> Result<Event, Error> {
-        match self.nostr_connect.signEvent(serde_wasm_bindgen::to_value(&event)?).await {
+        match CurrentSigner::sign_event(serde_wasm_bindgen::to_value(&event)?).await {
             Ok(sig) => {
               let event = event.add_signature(Signature::from_str(&sig.as_string().unwrap())?)?;
               Ok(event)

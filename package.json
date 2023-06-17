@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "@smontero/nostr-connect-singleton": "file:/home/sebastian/vsc-workspace/nostr-connect-singleton/"
+    "@smontero/nostr-ual": "file:/home/sebastian/vsc-workspace/nostr-ual/"
   }
 }

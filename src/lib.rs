@@ -13,7 +13,7 @@ const TIMEOUT: Option<Duration> = Some(Duration::from_secs(300));
 
 mod signer;
 
-use signer::{Signer, JavascriptError, WebExtensionSigner, NostrConnectSigner};
+use signer::{Signer, JavascriptError, WebSigner};
 
 
 #[wasm_bindgen(module = "/wasm-js-api.js")]
@@ -121,7 +121,7 @@ pub async fn contacts() -> Result<JsValue, JsValue> {
 
 #[wasm_bindgen]
 pub async fn encrypt_decrypt_test(v: &str) {
-    let signer = WebExtensionSigner;
+    let signer = WebSigner;
     let shared_key = Keys::generate();
     let pubkey = shared_key.public_key();
     log(format!("Public key to encrypt to: {}", pubkey).as_str());
@@ -140,11 +140,11 @@ pub async fn encrypt_decrypt_test(v: &str) {
 }
 
 #[wasm_bindgen]
-pub async fn sign_event_test_extension() -> Result<(), JsValue> {
+pub async fn sign_event_test() -> Result<(), JsValue> {
     let shared_key = Keys::generate();
     let pubkeyto = shared_key.public_key();
     loggear(format!("pubkeyto: {}", pubkeyto.to_string()).as_str());
-    let signer = WebExtensionSigner;
+    let signer = WebSigner;
     let r = signer.public_key().await;
     if let Ok(pubkey) =  r {
         let tags = vec![Tag::PubKey(pubkeyto, None)];
@@ -169,35 +169,6 @@ pub async fn sign_event_test_extension() -> Result<(), JsValue> {
     }
 }
 
-#[wasm_bindgen]
-pub async fn sign_event_test_nostr_connect() -> Result<(), JsValue> {
-    let shared_key = Keys::generate();
-    let pubkeyto = shared_key.public_key();
-    loggear(format!("pubkeyto: {}", pubkeyto.to_string()).as_str());
-    let signer = NostrConnectSigner::new();
-    let r = signer.public_key().await;
-    if let Ok(pubkey) =  r {
-        let tags = vec![Tag::PubKey(pubkeyto, None)];
-        let content = "Contenido del evento";
-        let uevent  = EventBuilder::new(Kind::TextNote, content, &tags).to_unsigned_event(pubkey);
-        match signer.sign_event(uevent).await {
-            Ok(event) => {
-                loggear(format!("Ok event: {:?}", event).as_str());
-                let keys =Keys::from_public_key(pubkey);
-                let client = Client::new(&keys);
-                client.add_relays(vec![DEFAULT_RELAY.to_string()]).await.unwrap();
-                client.connect().await;
-                let event_id = client.send_event(event).await.unwrap();
-                loggear(format!("Send event {}", event_id).as_str());
-            },
-            Err(err) => loggear(format!("Error event: {}", err).as_str()),
-        }
-
-        Ok(())
-    } else  {
-        Err(r.err().unwrap().to_string().into())
-    }
-}
 
 
 // #[wasm_bindgen]
